@@ -20,6 +20,26 @@
     <li>4. <a href="./qrlogin.html">二维码登录</a></li>
     <li>4. <a href="./audio_match_demo/index.html">听歌识曲</a></li>
   </ul>
+
+   <button id="fetchButton">Get Likelist</button>
+    <div id="result"></div>
+
+  <script> 
+        document.getElementById('fetchButton').addEventListener('click', function() { 
+            fetch('https://netease-cloud-music-api-omega-nine-69.vercel.app/likelist?uid=129561938')
+                .then(response => response.json())
+                .then(data => {
+                    const ids = data.ids;
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.innerHTML = ''; // Clear previous results
+                    ids.forEach(id => { 
+                        resultDiv.innerHTML += id + '<br>'; 
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+  </script> 
+  
   <style>
     html,
     body {
