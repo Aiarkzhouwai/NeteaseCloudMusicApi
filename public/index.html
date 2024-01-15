@@ -26,7 +26,7 @@
   <h1>网易云音乐 API</h1>
   <a href="http://docs.neteasecloudmusicapi.binaryify.com">查看文档</a>
   
-   <div><a href="https://neteaseark.vercel.app/qrlogin.html" data-immersive-translate-effect="1" data-immersive_translate_walked="78f9a969-8d8f-434e-8bdf-45bfcf9cd109">二维码登录</a></div>    
+   <div><a href="https://neteaseark.vercel.app/qrlogin.html" data-immersive-translate-effect="1" data-immersive_translate_walked="78f9a969-8d8f-434e-8bdf-45bfcf9cd109">二维码登录</a></div>     
     <div><a href="https://neteaseark.vercel.app/login/status">登录确认</a></div> 
     <div id="loginStatus">登录状态: 未知</div> <!-- 显示登录状态的元素 -->
     <div id="userInfo"></div> <!-- 显示用户信息 -->
@@ -71,13 +71,13 @@
                 });
             })
             .then(response => {
-                if (!response.ok) {
+                if (!response.ok) { 
                     throw new Error('网络响应错误2: ' + response.statusText);
                 }
                 return response.json();
             })
             .then(details => {
-                const resultDiv = document.getElementById('result');
+                const resultDiv = document.getElementById('result'); 
                 let tableHTML = '<table><tr><th>ID</th><th>歌曲名称</th><th>作者</th><th>专辑</th></tr>';
 
                 details.songs.forEach(song => {
@@ -116,7 +116,7 @@
                 const statusDiv = document.getElementById('loginStatus');
                 const userInfoDiv = document.getElementById('userInfo'); 
                 const likelistLink = document.getElementById('likelistLink'); // 获取链接元素
-                if (data && data.data && data.data.code === 200) {
+                if (data && data.data && data.data.code === 200) { 
                     const account = data.data.account;
                     const profile = data.data.profile;
                     userId = account.id; // 保存用户ID到全局变量
@@ -125,7 +125,7 @@
                     statusDiv.textContent = '登录状态: 已登录';
                     userInfoDiv.innerHTML = `
                         <div class="user-info">
-                            <p>ID: ${account.id}</p>
+                            <p>ID: ${account.id}</p>  
                             <p>昵称: ${profile.nickname}</p>
                             <img src="${profile.avatarUrl}" alt="${profile.nickname}">
                         </div>
@@ -154,38 +154,46 @@
         return;
     }
 
-    // 从表格的每一行中提取第一列（ID）并组成数组
-    const ids = Array.from(table.rows).slice(1).map(row => row.cells[0].textContent.trim());
+    // 从表格中提取歌曲信息
+const songsInfo = Array.from(table.rows).slice(1).map(row => { 
+    return {
+        ID: row.cells[0].textContent.trim(),
+        歌曲名称: row.cells[1].textContent.trim(),
+        作者: row.cells[2].textContent.trim(),
+        专辑: row.cells[3].textContent.trim()
+    };
+});
 
-    if (ids.length === 0) {
-        alert('歌曲列表为空！');
-        return;
-    }
+if (songsInfo.length === 0) {
+    alert('歌曲列表为空！');
+    return;
+}
 
-    // 使用 Promise.all 来并发获取所有歌词数据
-    Promise.all(ids.map(id => fetch(`https://neteaseark.vercel.app/lyric?id=${id}`).then(resp => resp.json())))
-        .then(allLyrics => {
-            // 将所有歌词数据组合成一个对象
-            const combinedJson = allLyrics.reduce((obj, lyric, index) => {
-                obj[ids[index]] = lyric;
-                return obj;
-            }, {});
-
-            // 创建 Blob 并下载
-            const blob = new Blob([JSON.stringify(combinedJson, null, 2)], { type: 'application/json' }); 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'lyrics.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        })
-        .catch(error => {
-            console.error('错误:', error);
-            alert('下载过程中发生错误，请查看控制台！');
-        });
+// 使用 Promise.all 来并发获取所有歌词数据
+Promise.all(songsInfo.map(songInfo => 
+    fetch(`https://neteaseark.vercel.app/lyric?id=${songInfo.ID}`)
+        .then(resp => resp.json())
+        .then(data => ({
+            ...songInfo,
+            歌词: data.lrc && data.lrc.lyric ? data.lrc.lyric : '无歌词'
+        }))
+))
+.then(allSongs => {
+    // 创建 Blob 并下载
+    const blob = new Blob([JSON.stringify(allSongs, null, 2)], { type: 'application/json' }); 
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lyrics.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+})
+.catch(error => {
+    console.error('错误:', error);
+    alert('下载过程中发生错误，请查看控制台！');
+});
 });
 
         // 其余的代码保持不变
