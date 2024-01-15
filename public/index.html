@@ -34,6 +34,7 @@
     <button id="fetchButton">获取喜欢的歌曲列表</button>
     <div id="result"></div>
     <div id="error" style="color: red;"></div>
+    <button id="downloadButton">下载歌词 JSON</button>
 
   <script> 
         let userId; // 全局变量，用于存储用户ID
@@ -142,6 +143,47 @@
                 document.getElementById('userInfo').innerHTML = ''; 
             });
         }
+
+        document.getElementById('downloadButton').addEventListener('click', function() {
+    const table = document.getElementById('result');
+    if (!table) {
+        alert('没有找到歌曲列表，请先获取歌曲列表！');
+        return;
+    }
+
+    // 从表格的每一行中提取第一列（ID）并组成数组
+    const ids = Array.from(table.rows).slice(1).map(row => row.cells[0].textContent);
+
+    if (ids.length === 0) {
+        alert('歌曲列表为空！');
+        return;
+    }
+
+    // 使用 Promise.all 来并发获取所有歌词数据
+    Promise.all(ids.map(id => fetch(`https://neteaseark.vercel.app/lyric?id=${id}`).then(resp => resp.json())))
+        .then(allLyrics => {
+            // 将所有歌词数据组合成一个对象
+            const combinedJson = allLyrics.reduce((obj, lyric, index) => {
+                obj[ids[index]] = lyric;
+                return obj;
+            }, {});
+
+            // 创建 Blob 并下载
+            const blob = new Blob([JSON.stringify(combinedJson, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lyrics.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('下载过程中发生错误，请查看控制台！');
+        });
+});
 
         // 其余的代码保持不变
 
