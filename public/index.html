@@ -12,7 +12,7 @@
             border-collapse: collapse;
         }
         th, td {
-            padding: 5px;
+            padding: 5px; 
             text-align: left;
         }
         .user-info img {
@@ -114,7 +114,7 @@
             .then(data => {
                 // 更新登录状态显示
                 const statusDiv = document.getElementById('loginStatus');
-                const userInfoDiv = document.getElementById('userInfo');
+                const userInfoDiv = document.getElementById('userInfo'); 
                 const likelistLink = document.getElementById('likelistLink'); // 获取链接元素
                 if (data && data.data && data.data.code === 200) {
                     const account = data.data.account;
@@ -140,7 +140,7 @@
             .catch(error => {
                 console.error('错误:', error);
                 document.getElementById('loginStatus').textContent = '登录状态: 获取失败';
-                document.getElementById('userInfo').innerHTML = ''; 
+                document.getElementById('userInfo').innerHTML = '';  
             });
         }
 
@@ -153,38 +153,44 @@
         return;
     }
 
-    // 从表格的每一行中提取第一列（ID）并组成数组
-    const ids = Array.from(table.rows).slice(1).map(row => row.cells[0].textContent);
+  const songsInfo = Array.from(table.rows).slice(1).map(row => { 
+    return {
+        ID: row.cells[0].textContent.trim(),
+        歌曲名称: row.cells[1].textContent.trim(),
+        作者: row.cells[2].textContent.trim(),
+        专辑: row.cells[3].textContent.trim()
+    };
+});
 
-    if (ids.length === 0) {
-        alert('歌曲列表为空！');
-        return;
-    }
+if (songsInfo.length === 0) {
+    alert('歌曲列表为空！');
+    return;
+}
 
-    // 使用 Promise.all 来并发获取所有歌词数据
-    Promise.all(ids.map(id => fetch(`https://neteaseark.vercel.app/lyric?id=${id}`).then(resp => resp.json())))
-        .then(allLyrics => {
-            // 将所有歌词数据组合成一个对象
-            const combinedJson = allLyrics.reduce((obj, lyric, index) => {
-                obj[ids[index]] = lyric;
-                return obj;
-            }, {});
-
-            // 创建 Blob 并下载
-            const blob = new Blob([JSON.stringify(combinedJson, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'lyrics.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        })
-        .catch(error => {
-            console.error('错误:', error);
-            alert('下载过程中发生错误，请查看控制台！');
-        });
+// 使用 Promise.all 来并发获取所有歌词数据
+Promise.all(songsInfo.map(songInfo => 
+    fetch(`https://neteaseark.vercel.app/lyric?id=${songInfo.ID}`)
+        .then(resp => resp.json())
+        .then(data => ({
+            ...songInfo,
+            歌词: data.lrc && data.lrc.lyric ? data.lrc.lyric : '无歌词'
+        }))
+))
+.then(allSongs => {
+    // 创建 Blob 并下载
+    const blob = new Blob([JSON.stringify(allSongs, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lyrics.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+})
+.catch(error => {
+    console.error('错误:', error);
+    alert('下载过程中发生错误，请查看控制台！');
 });
 
         // 其余的代码保持不变
