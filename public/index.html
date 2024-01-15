@@ -154,34 +154,43 @@ document.getElementById('downloadButton').addEventListener('click', function() {
         return;
     }
 
-    // 从表格的每一行中提取第一列（ID）并组成数组
-    const ids = Array.from(table.rows).slice(1).map(row => row.cells[0].textContent.trim());
+    // 从表格中提取歌曲信息
+    const songsInfo = Array.from(table.rows).slice(1).map(row => ({
+        id: row.cells[0].textContent.trim(),
+        name: row.cells[1].textContent.trim(),
+        artist: row.cells[2].textContent.trim(),
+        album: row.cells[3].textContent.trim()
+    }));
 
-    if (ids.length === 0) {
+    if (songsInfo.length === 0) {
         alert('歌曲列表为空！');
         return;
     }
 
     // 使用 Promise.all 来并发获取所有歌词数据
-    Promise.all(ids.map(id => fetch(`https://neteaseark.vercel.app/lyric?id=${id}`).then(resp => resp.json())))
-        .then(allLyrics => {
-            // 将所有歌词数据组合成一个对象
-            const combinedJson = allLyrics.reduce((obj, lyric, index) => {
-                obj[ids[index]] = lyric;
-                return obj;
-            }, {});
-
-            // 创建 Blob 并下载
-            const blob = new Blob([JSON.stringify(combinedJson, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'lyrics.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        })
+    Promise.all(songsInfo.map(song => 
+        fetch(`https://neteaseark.vercel.app/lyric?id=${song.id}`)
+            .then(resp => resp.json())
+            .then(lyricData => ({
+                id: song.id, 
+                name: song.name,
+                artist: song.artist,
+                album: song.album,
+                lyrics: lyricData.lrc && lyricData.lrc.lyric ? lyricData.lrc.lyric : '无歌词'
+            }))
+    ))
+    .then(allSongLyrics => {
+        // 创建 Blob 并下载
+        const blob = new Blob([JSON.stringify(allSongLyrics, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'song_lyrics.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    })
         .catch(error => {
             console.error('错误:', error);
             alert('下载过程中发生错误，请查看控制台！');
